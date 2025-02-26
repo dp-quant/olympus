@@ -1,0 +1,103 @@
+[tool.poetry]
+name = "olympus"
+version = "0.0.1"
+description = "olympus"
+authors = ["Dmytro Podoprosvietov <dp.quant@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/dp-quant/olympus"
+repository = "https://github.com/dp-quant/olympus"
+documentation = "https://olympus.readthedocs.io"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+]
+
+[tool.poetry.urls]
+Changelog = "https://github.com/dp-quant/olympus/releases"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+django = "4.2.19"
+celery = "^5.4.0"
+djangorestframework = "^3.15.2"
+arrow = "^1.3.0"
+loguru = "^0.7.3"
+sentry-sdk = "^2.22.0"
+django-split-settings = "^1.3.2"
+requests = "^2.32.3"
+cryptography = "^44.0.1"
+psycopg2-binary = "^2.9.10"
+pytz = "^2025.1"
+orjson = "^3.10.15"
+supervisor = "^4.2.5"
+gunicorn = "^23.0.0"
+json-log-formatter = "^1.1"
+twilio = "^9.4.6"
+sendgrid-python = "^0.1.1"
+django-environ = "^0.12.0"
+logtail-python = "^0.3.3"
+
+
+[tool.poetry.group.dev.dependencies]
+flower = "^2.0.1"
+black = ">=23.10.0"
+coverage = {extras = ["toml"], version = ">=7.3.2"}
+darglint = ">=1.8.1"
+flake8 = ">=6.1.0"
+flake8-bandit = ">=4.1.1"
+flake8-bugbear = ">=23.9.16"
+flake8-docstrings = ">=1.7.0"
+flake8-rst-docstrings = ">=0.3.0"
+furo = ">=2023.9.10"
+isort = ">=5.12.0"
+mypy = ">=1.6.0"
+pep8-naming = ">=0.13.3"
+pre-commit = ">=3.5.0"
+pre-commit-hooks = ">=4.5.0"
+pytest = ">=7.4.2"
+pytest-django = "^4.10.0"
+pyupgrade = ">=3.15.0"
+typeguard = ">=4.1.5"
+xdoctest = {extras = ["colors"], version = ">=1.1.1"}
+myst-parser = "^2.0.0"
+nox = "^2024.4.15"
+nox-poetry = "^1.0.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.paths]
+source = ["src", "*/site-packages"]
+tests = ["tests", "*/tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["olympus", "tests"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90
+
+[tool.isort]
+profile = "black"
+force_single_line = true
+lines_after_imports = 2
+
+[tool.mypy]
+strict = true
+warn_unreachable = true
+pretty = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
+
+
+[tool.taskipy.tasks]
+manage = "poetry run python manage.py"
+make-migrations = "poetry run python manage.py makemigrations"
+migrate = "poetry run python manage.py migrate"
+olympus = "poetry run gunicorn configs.wsgi:application -c .configs/gunicorn.py"
+hermes = "poetry run celery --app configs.celery:app worker --concurrency 6 --loglevel INFO -n hermes@%h -Q default,organizations,emails,messages --pidfile /var/run/application/celeryd.pid"
+chronos = "poetry run celery --app configs.celery:app beat --loglevel INFO --pidfile /var/run/application/celeryd.pid"
+eirene = "poetry run celery --app configs.celery:app flower --pidfile /var/run/application/celeryd.pid"

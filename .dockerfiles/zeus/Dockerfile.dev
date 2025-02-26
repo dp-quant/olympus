@@ -1,0 +1,74 @@
+FROM python:3.12
+EXPOSE 8888
+
+# Set Arguments for Project and Maintainer
+ARG MAINTAINER
+ARG PROJECT_NAME
+
+# Configure User and Group
+ARG DOCKER_USER
+ARG DOCKER_USER_ID=1000
+
+ARG DOCKER_GROUP
+ARG DOCKER_GROUP_ID=1000
+
+RUN groupadd -g ${DOCKER_GROUP_ID} ${DOCKER_GROUP}
+RUN useradd -u ${DOCKER_USER_ID} -g ${DOCKER_GROUP} ${DOCKER_USER}
+
+# Set Project Environment Variables
+ENV APPHOME /srv
+ENV RUNDIR /var/run/application
+ENV CONFDIR .configs
+ENV WORKDIR ${APPHOME}/${MAINTAINER}/${PROJECT_NAME}
+
+ENV MAINTAINER ${MAINTAINER}
+ENV PROJECT_NAME ${PROJECT_NAME}
+
+# Prepare Environment
+RUN mkdir -p ${WORKDIR}
+WORKDIR  ${WORKDIR}
+COPY ./src/ ${WORKDIR}
+COPY ./${CONFDIR} ${WORKDIR}/${CONFDIR}
+COPY ./pyproject.toml ${WORKDIR}/pyproject.toml
+
+# Install Dependencies
+RUN pip install poetry
+ENV POETRY_CACHE_DIR=${APPHOME}/.poetry
+RUN poetry install
+
+
+# Configure Ngix setup
+RUN echo "deb https://nginx.org/packages/debian/ bookworm nginx" > /etc/apt/sources.list.d/nginx.list && \
+    echo "deb-src https://nginx.org/packages/debian/ bookworm nginx" >> /etc/apt/sources.list.d/nginx.list
+
+RUN echo "deb http://archive.debian.org/debian stretch main" > /etc/apt/sources.list
+
+RUN wget http://nginx.org/keys/nginx_signing.key && apt-key add nginx_signing.key
+
+RUN apt-get update && apt-get install -y \
+    nginx=1.22.1-9 \
+    nginx-extras
+
+RUN service nginx stop
+
+COPY ${CONFDIR}/httpd.conf /etc/nginx/sites-available/${PROJECT_NAME}.conf
+COPY ${CONFDIR}/nginx.conf /etc/nginx/nginx.conf
+RUN ln -s /etc/nginx/sites-available/${PROJECT_NAME}.conf /etc/nginx/sites-enabled/${PROJECT_NAME}.conf
+RUN chown -R ${DOCKER_USER}:${DOCKER_GROUP} /var/lib/nginx
+
+# Configure run directory
+RUN mkdir -p ${RUNDIR} && \
+    chown -R ${DOCKER_USER}:${DOCKER_GROUP} ${RUNDIR} && \
+    chmod -R 775 ${RUNDIR}
+
+# Final Setup for User Ownership
+RUN chown -R ${DOCKER_USER_ID}:${DOCKER_GROUP_ID} ${APPHOME}
+USER ${DOCKER_USER}:${DOCKER_GROUP}
+
+# Set Python Environment Variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH "${PYTHONPATH}:${WORKDIR}}"
+ENV C_FORCE_ROOT True
+
+CMD ["poetry", "run", "supervisord", "-c", ".configs/supervisor.conf"]

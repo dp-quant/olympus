@@ -1,0 +1,100 @@
+"""Gunicorn configuration file."""
+
+import logging
+import sys
+import typing
+import os
+from pathlib import Path
+
+import environs
+import json_log_formatter
+from multiprocessing import cpu_count
+
+env: environs.Env = environs.Env()
+
+# Add the src directory to the path
+src_path = Path(__file__).resolve().parent.parent / "src"
+sys.path.insert(0, str(src_path))
+
+bind: str = "unix:/var/run/application/gunicorn.sock"
+backlog: int = 2048
+
+workers: int = cpu_count() * 2 - 1
+worker_class: str = "uvicorn.workers.UvicornWorker"
+timeout: int = 300
+max_requests: int = 1500
+graceful_timeout: int = 30
+
+
+daemon: bool = False
+
+pidfile: str = "/var/run/application/gunicorn.pid"
+
+umask: int = 0
+user: str = env.str("DOCKER_USER")
+group: str = env.str("DOCKER_GROUP")
+tmp_upload_dir: typing.Any = None
+
+reload: bool = env.bool("GUNICORN_RELOAD", default=False)
+reload_engine: str = "poll"
+
+
+accesslog: str = "-"
+errorlog: str = "-"
+
+
+SORUCE_GUNICORN: str = "gunicorn"
+
+
+class JsonRequestFormatter(json_log_formatter.JSONFormatter):
+    """Custom JSON log formatter for Gunicorn."""
+
+    def json_record(
+        self,
+        message: str,
+        extra: dict[str, str | int | float],
+        record: logging.LogRecord,
+    ) -> dict[str, str | int | float]:
+        """Return a JSON log record."""
+        payload: dict[str, str | int | float] = super().json_record(
+            message, extra, record
+        )
+        payload["service"] = env.str("SERVICE_NAME", "---")
+        payload["source"] = SORUCE_GUNICORN
+        payload["level"] = record.levelname
+
+        payload.pop("color_message", None)
+
+        return payload
+
+
+# Ensure the two named loggers that Gunicorn uses are configured to use a custom
+# JSON formatter.
+logconfig_dict = {
+    "version": 1,
+    "formatters": {
+        "json": {
+            "()": JsonRequestFormatter,
+        }
+    },
+    "handlers": {
+        "json": {
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "json",
+        }
+    },
+    "root": {"level": "INFO", "handlers": []},
+    "loggers": {
+        "gunicorn.access": {
+            "level": "INFO",
+            "handlers": ["json"],
+            "propagate": False,
+        },
+        "gunicorn.error": {
+            "level": "INFO",
+            "handlers": ["json"],
+            "propagate": False,
+        },
+    },
+}

@@ -1,0 +1,90 @@
+services:
+  prometeus:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+  ares:
+    image: postgres:16.8-alpine
+    volumes:
+      - ares_data:/var/lib/postgresql/data/
+    env_file: .env
+    ports:
+      - 5433:5432
+  zeus:
+    build:
+      context: .
+      dockerfile: .dockerfiles/zeus/Dockerfile.dev
+      args:
+        - MAINTAINER=${MAINTAINER}
+        - PROJECT_NAME=${PROJECT_NAME}
+        - DOCKER_USER=${DOCKER_USER}
+        - DOCKER_GROUP=${DOCKER_GROUP}
+    ports:
+      - "9500:8888"
+    volumes:
+      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+    env_file: .env
+    environment:
+      - SERVICE_NAME=zeus
+    depends_on:
+      - prometeus
+      - ares
+      - hermes
+      - chronos
+  hermes:
+    build:
+      context: .
+      dockerfile: .dockerfiles/hermes/Dockerfile.dev
+      args:
+        - MAINTAINER=${MAINTAINER}
+        - PROJECT_NAME=${PROJECT_NAME}
+        - DOCKER_USER=${DOCKER_USER}
+        - DOCKER_GROUP=${DOCKER_GROUP}
+    env_file: .env
+    environment:
+      - SERVICE_NAME=hermes
+    volumes:
+      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+    depends_on:
+      - prometeus
+      - chronos
+  chronos:
+    build:
+      context: .
+      dockerfile: .dockerfiles/chronos/Dockerfile.dev
+      args:
+        - MAINTAINER=${MAINTAINER}
+        - PROJECT_NAME=${PROJECT_NAME}
+        - DOCKER_USER=${DOCKER_USER}
+        - DOCKER_GROUP=${DOCKER_GROUP}
+    env_file: .env
+    environment:
+      - SERVICE_NAME=chronos
+    volumes:
+      - ./alembic/:/srv/${MAINTAINER}/${PROJECT_NAME}/alembic
+      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+    depends_on:
+      - prometeus
+  eirene:
+    build:
+      context: .
+      dockerfile: .dockerfiles/eirene/Dockerfile.dev
+      args:
+        - MAINTAINER=${MAINTAINER}
+        - PROJECT_NAME=${PROJECT_NAME}
+        - DOCKER_USER=${DOCKER_USER}
+        - DOCKER_GROUP=${DOCKER_GROUP}
+    env_file: .env
+    environment:
+      - SERVICE_NAME=eirene
+    volumes:
+      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+    ports:
+      - "5555:5555"
+    depends_on:
+      - prometeus
+      - chronos
+      - hermes
+volumes:
+  ares_data:

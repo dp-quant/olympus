@@ -1,0 +1,50 @@
+FROM python:3.12
+
+# Set Arguments for Project and Maintainer
+ARG MAINTAINER
+ARG PROJECT_NAME
+
+# Configure User and Group
+ARG DOCKER_USER
+ARG DOCKER_USER_ID=1000
+
+ARG DOCKER_GROUP
+ARG DOCKER_GROUP_ID=1000
+
+RUN groupadd -g ${DOCKER_GROUP_ID} ${DOCKER_GROUP}
+RUN useradd -u ${DOCKER_USER_ID} -g ${DOCKER_GROUP} ${DOCKER_USER}
+
+# Set Project Environment Variables
+ENV APPHOME /srv
+ENV RUNDIR /var/run/application
+ENV WORKDIR ${APPHOME}/${MAINTAINER}/${PROJECT_NAME}
+ENV MAINTAINER ${MAINTAINER}
+ENV PROJECT_NAME ${PROJECT_NAME}
+
+# Prepare Environment
+RUN mkdir -p ${WORKDIR}
+WORKDIR  ${WORKDIR}
+COPY ./src/ ${WORKDIR}
+COPY ./pyproject.toml ${WORKDIR}/pyproject.toml
+
+# Install Dependencies
+RUN pip install poetry
+ENV POETRY_CACHE_DIR=${APPHOME}/.poetry
+RUN poetry install
+
+# Configure run directory
+RUN mkdir -p ${RUNDIR} && \
+    chown -R ${DOCKER_USER}:${DOCKER_GROUP} ${RUNDIR} && \
+    chmod -R 775 ${RUNDIR}
+
+# Final Setup for User Ownership
+RUN chown -R ${DOCKER_USER_ID}:${DOCKER_GROUP_ID} ${APPHOME}
+USER ${DOCKER_USER}:${DOCKER_GROUP}
+
+# Set Python Environment Variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH "${PYTHONPATH}:${WORKDIR}}"
+ENV C_FORCE_ROOT True
+
+CMD ["poetry", "run", "task", "hermes"]
