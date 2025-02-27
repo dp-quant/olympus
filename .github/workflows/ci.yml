@@ -1,4 +1,4 @@
-name: CI
+name: Quality Checker
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  quality-checker:
     runs-on: ubuntu-latest
     
     services:
@@ -55,7 +55,11 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Run check task
-        run: poetry run task check
+        run: |
+          set -a
+          source .env.example
+          set +a
+          poetry run task check
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
@@ -64,7 +68,11 @@ jobs:
           POSTGRES_PASSWORD: postgres
 
       - name: Run test task
-        run: poetry run task test
+        run: |
+          set -a
+          source .env.example
+          set +a
+          poetry run task test
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
@@ -73,7 +81,11 @@ jobs:
           POSTGRES_PASSWORD: postgres
 
       - name: Generate coverage report
-        run: make coverage
+        run: |
+          set -a
+          source .env.example
+          set +a
+          make coverage
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
