@@ -20,21 +20,17 @@ ENV APPHOME /srv
 ENV WORKDIR ${APPHOME}/${MAINTAINER}/${PROJECT_NAME}
 ENV MAINTAINER ${MAINTAINER}
 ENV PROJECT_NAME ${PROJECT_NAME}
-ENV ALEMBICDIR alembic
 
 # Prepare Environment
 RUN mkdir -p ${WORKDIR}
 WORKDIR  ${WORKDIR}
 COPY ./src/ ${WORKDIR}
 COPY ./pyproject.toml ${WORKDIR}/pyproject.toml
-COPY ./${ALEMBICDIR} ${WORKDIR}/${ALEMBICDIR}
-COPY alembic.ini ${WORKDIR}/alembic.ini
-COPY bin/ ${WORKDIR}/bin
 
 # Install Dependencies
 RUN pip install poetry
 ENV POETRY_CACHE_DIR=${APPHOME}/.poetry
-RUN poetry install
+RUN poetry install --no-root
 
 # Configure run directory
 RUN mkdir -p ${RUNDIR} && \
@@ -50,7 +46,5 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONPATH "${PYTHONPATH}:${WORKDIR}}"
 ENV C_FORCE_ROOT True
-
-ENTRYPOINT ["./bin/proceed_migrations.sh"]
 
 CMD ["poetry", "run", "task", "chronos"]

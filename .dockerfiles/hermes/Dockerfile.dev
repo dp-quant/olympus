@@ -30,7 +30,7 @@ COPY ./pyproject.toml ${WORKDIR}/pyproject.toml
 # Install Dependencies
 RUN pip install poetry
 ENV POETRY_CACHE_DIR=${APPHOME}/.poetry
-RUN poetry install
+RUN poetry install --no-root
 
 # Configure run directory
 RUN mkdir -p ${RUNDIR} && \

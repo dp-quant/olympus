@@ -3,14 +3,14 @@
 import logging
 import sys
 import typing
-import os
+from multiprocessing import cpu_count
 from pathlib import Path
 
-import environs
+import environ
 import json_log_formatter
-from multiprocessing import cpu_count
 
-env: environs.Env = environs.Env()
+
+env: environ.Env = environ.Env()
 
 # Add the src directory to the path
 src_path = Path(__file__).resolve().parent.parent / "src"
@@ -19,11 +19,10 @@ sys.path.insert(0, str(src_path))
 bind: str = "unix:/var/run/application/gunicorn.sock"
 backlog: int = 2048
 
-workers: int = cpu_count() * 2 - 1
-worker_class: str = "uvicorn.workers.UvicornWorker"
-timeout: int = 300
-max_requests: int = 1500
-graceful_timeout: int = 30
+workers: int = env.int("GUNICORN_WORKERS", cpu_count() * 2 - 1)
+timeout: int = env.int("GUNICORN_TIMEOUT", 300)
+max_requests: int = env.int("GUNICORN_MAX_REQUESTS", 1500)
+graceful_timeout: int = env.int("GUNICORN_GRACEFUL_TIMEOUT", 30)
 
 
 daemon: bool = False
@@ -43,12 +42,8 @@ accesslog: str = "-"
 errorlog: str = "-"
 
 
-SORUCE_GUNICORN: str = "gunicorn"
-
-
 class JsonRequestFormatter(json_log_formatter.JSONFormatter):
     """Custom JSON log formatter for Gunicorn."""
-
     def json_record(
         self,
         message: str,
@@ -60,7 +55,7 @@ class JsonRequestFormatter(json_log_formatter.JSONFormatter):
             message, extra, record
         )
         payload["service"] = env.str("SERVICE_NAME", "---")
-        payload["source"] = SORUCE_GUNICORN
+        payload["source"] = "gunicorn"
         payload["level"] = record.levelname
 
         payload.pop("color_message", None)

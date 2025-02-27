@@ -1,6 +1,4 @@
-"""
-ENV helper for the project.
-"""
+"""ENV helper for the project settings."""
 
 from enum import Enum
 
@@ -11,6 +9,8 @@ env = environ.Env()
 
 
 class OlympusEnv(Enum):
+    """Olympus Environment."""
+
     LOCAL = "local"
     DEVELOPMENT = "development"
     PRODUCTION = "production"

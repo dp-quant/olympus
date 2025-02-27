@@ -1,6 +1,4 @@
-"""
-Logging settings using Loguru
-"""
+"""Logging settings using Loguru."""
 
 from .env import env
 

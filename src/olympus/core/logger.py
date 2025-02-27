@@ -1,3 +1,5 @@
+"""Application Logger."""
+
 import logging
 import sys
 
@@ -9,12 +11,18 @@ from loguru import logger
 logger.remove()
 
 
-def json_formatter(record):
-    """
-    Custom JSON formatter for Loguru
+def serialize(record):
+    """Serialize Rules for the record.
+
+    Args:
+        record: Loguru record.
+
+    Returns:
+        Serialized record.
     """
     log_record = {
-        "timestamp": record["time"].isoformat(),
+        "timestamp": record["time"].timestamp(),
+        "time": record["time"].isoformat(),
         "level": record["level"].name,
         "message": record["message"],
         "name": record["name"],
@@ -25,19 +33,27 @@ def json_formatter(record):
 
     # Add exception info if present
     if record["exception"]:
-        log_record["exception"] = record["exception"]
+        log_record["exception"] = f"{record['exception'].type}: {record['exception'].value}"
 
     # Add extra context if present
     if record["extra"]:
         log_record["extra"] = record["extra"]
 
-    return orjson.dumps(log_record)
+    return orjson.dumps(log_record).decode("utf-8")
+
+
+def sink(message):
+    """Custom JSON formatter for Loguru.
+
+    Args:
+        message: Loguru message.
+    """
+    print(serialize(message.record), file=sys.stdout)
 
 
 # Add console handler with JSON formatting
 logger.add(
-    sys.stderr,
-    format=json_formatter,
+    sink,
     level=settings.LOG_LEVEL,
     serialize=False,  # We're already serializing in our formatter
     backtrace=True,
@@ -50,8 +66,8 @@ if settings.LOGTAIL_ENABLED and settings.LOGTAIL_TOKEN:
         logtail_handler = LogtailHandler(source_token=settings.LOGTAIL_TOKEN)
         logger.add(
             logtail_handler,
-            level=settings.LOG_LEVEL,
-            format=json_formatter,
+            level=settings.LOG_LEVEL.upper(),
+            format="{message}",
             serialize=False,
             backtrace=True,
             diagnose=True,
@@ -61,33 +77,35 @@ if settings.LOGTAIL_ENABLED and settings.LOGTAIL_TOKEN:
 
 
 class InterceptHandler(logging.Handler):
+    """InterceptHandler for Django logging."""
+
     def __init__(self):
+        """Initialize the InterceptHandler."""
         super().__init__()
-        self.formatter = logging.Formatter("%(message)s")
-        self.level = logging.NOTSET
+        self.formatter = None
+        self.level = settings.LOG_LEVEL.upper()
 
     def emit(self, record):
-        # Get corresponding Loguru level if it exists
+        """Emit the record.
+
+        Args:
+            record: Record.
+        """
         try:
             level = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
-        # Find caller from where this was logged
         frame, depth = sys._getframe(6), 6
         while frame and frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back
+            # frame = frame.f_back  # noqa
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-# Configure Django logging to use our Loguru setup
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
-# Replace all existing handlers with our InterceptHandler
 for name in logging.root.manager.loggerDict.keys():
     logging.getLogger(name).handlers = []
     logging.getLogger(name).propagate = True

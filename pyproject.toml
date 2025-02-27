@@ -36,6 +36,8 @@ twilio = "^9.4.6"
 sendgrid-python = "^0.1.1"
 django-environ = "^0.12.0"
 logtail-python = "^0.3.3"
+python-ulid = "^3.0.0"
+taskipy = "^1.14.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -46,22 +48,18 @@ darglint = ">=1.8.1"
 flake8 = ">=6.1.0"
 flake8-bandit = ">=4.1.1"
 flake8-bugbear = ">=23.9.16"
-flake8-docstrings = ">=1.7.0"
-flake8-rst-docstrings = ">=0.3.0"
 furo = ">=2023.9.10"
 isort = ">=5.12.0"
 mypy = ">=1.6.0"
 pep8-naming = ">=0.13.3"
-pre-commit = ">=3.5.0"
-pre-commit-hooks = ">=4.5.0"
 pytest = ">=7.4.2"
 pytest-django = "^4.10.0"
 pyupgrade = ">=3.15.0"
 typeguard = ">=4.1.5"
-xdoctest = {extras = ["colors"], version = ">=1.1.1"}
-myst-parser = "^2.0.0"
-nox = "^2024.4.15"
-nox-poetry = "^1.0.3"
+pygments = "^2.19.1"
+flake8-pyproject = "^1.2.3"
+django-stubs = "^5.1.3"
+djangorestframework-stubs = "^3.15.3"
 
 [build-system]
 requires = ["poetry-core"]
@@ -79,6 +77,10 @@ source = ["olympus", "tests"]
 show_missing = true
 fail_under = 90
 
+[tool.black]
+line-length = 120
+target-version = ['py312']
+
 [tool.isort]
 profile = "black"
 force_single_line = true
@@ -91,13 +93,54 @@ pretty = true
 show_column_numbers = true
 show_error_codes = true
 show_error_context = true
+ignore_missing_imports = true
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "configs.settings"
+python_files = ["test_*.py", "*_test.py", "testing/python/*.py"]
+omit = ["*/tests/*"]
+
+[tool.django-stubs]
+django_version = "4.2"
+django_settings_module = "configs.settings"
+
+[tool.mypy_django_plugin]
+django_settings_module = "configs.settings"
+
+[tool.mypy_drf_plugin]
+django_settings_module = "configs.settings"
+
+[tool.flake8]
+select = ["B", "B9", "C", "D", "DAR", "E", "F", "N", "RST", "S", "W"]
+ignore = ["E203", "E501", "RST201", "RST203", "RST301", "W503"]
+max-line-length = 120
+max-complexity = 10
+docstring-convention = "google"
+rst-roles = ["class", "const", "func", "meth", "mod", "ref"]
+rst-directives = ["deprecated"]
+exclude = ".git,__pycache__,docs/conf.py,old,build,dist,*/tests/*,*/migrations/*"
+darglint-ignore = ["*/tests/*"]
+
+[tool.pyupgrade]
+py312-plus = true
+
+[tool.taskipy.settings]
+use_vars = true
+
+[tool.taskipy.variables]
+source = "src/"
 
 [tool.taskipy.tasks]
+lint = "poetry run isort {source} && poetry run black {source}"
+check = "poetry run flake8 {source} && poetry run mypy {source}"
+test = "poetry run pytest"
 manage = "poetry run python manage.py"
 make-migrations = "poetry run python manage.py makemigrations"
 migrate = "poetry run python manage.py migrate"
-olympus = "poetry run gunicorn configs.wsgi:application -c .configs/gunicorn.py"
+zeus = "poetry run gunicorn configs.wsgi:application -c .configs/gunicorn.py"
 hermes = "poetry run celery --app configs.celery:app worker --concurrency 6 --loglevel INFO -n hermes@%h -Q default,organizations,emails,messages --pidfile /var/run/application/celeryd.pid"
 chronos = "poetry run celery --app configs.celery:app beat --loglevel INFO --pidfile /var/run/application/celeryd.pid"
 eirene = "poetry run celery --app configs.celery:app flower --pidfile /var/run/application/celeryd.pid"
