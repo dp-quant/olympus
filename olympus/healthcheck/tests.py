@@ -8,6 +8,11 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from olympus.core.logger import get_logger
+
+
+logger = get_logger(__name__)
+
 
 @pytest.fixture
 def api_client() -> APIClient:
@@ -22,7 +27,7 @@ def api_client() -> APIClient:
 @pytest.mark.parametrize(
     "view_name,expected_data",
     [
-        ("health-check", {"is_online": True}),
+        ("health_check", {"is_service_online": True}),
     ],
 )
 def test_simple_health_check(api_client, view_name, expected_data):
@@ -43,8 +48,8 @@ def test_simple_health_check(api_client, view_name, expected_data):
 @pytest.mark.parametrize(
     "mock_return,expected_status,expected_data",
     [
-        ((1,), status.HTTP_200_OK, {"is_db_alive": True}),
-        ((0,), status.HTTP_503_SERVICE_UNAVAILABLE, {"is_db_alive": False}),
+        ((1,), status.HTTP_200_OK, {"is_db_online": True}),
+        ((0,), status.HTTP_503_SERVICE_UNAVAILABLE, {"is_db_online": False}),
     ],
 )
 def test_db_health_check_results(api_client, mock_return, expected_status, expected_data):
@@ -62,7 +67,7 @@ def test_db_health_check_results(api_client, mock_return, expected_status, expec
         mock_cursor.fetchone.return_value = mock_return
         mock_connection.cursor.return_value.__enter__.return_value = mock_cursor
 
-        url = reverse("db-health-check")
+        url = reverse("db_health_check")
         response = api_client.get(url)
 
         assert response.status_code == expected_status
@@ -77,24 +82,24 @@ def test_db_health_check_exception(api_client):
         api_client: The API client to use for testing.
     """
     with patch("olympus.healthcheck.views.connection") as mock_connection:
-        mock_connection.cursor.side_effect = Exception("DB connection error")
+        mock_connection.cursor.side_effect = logger.error("DB connection error")
 
-        url = reverse("db-health-check")
+        url = reverse("db_health_check")
         response = api_client.get(url)
 
         assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        assert response.data == {"is_db_alive": False}
+        assert response.data == {"is_db_online": False}
 
 
 @pytest.mark.parametrize(
     "connection_success,expected_status,expected_data",
     [
-        (True, status.HTTP_200_OK, {"is_broker_alive": True}),
-        (False, status.HTTP_503_SERVICE_UNAVAILABLE, {"is_broker_alive": False}),
+        (True, status.HTTP_200_OK, {"is_broker_online": True}),
+        (False, status.HTTP_503_SERVICE_UNAVAILABLE, {"is_broker_online": False}),
     ],
 )
-def test_rabbitmq_health_check(api_client, connection_success, expected_status, expected_data):
-    """Test RabbitMQ health check with success and failure scenarios.
+def test_broker_health_check(api_client, connection_success, expected_status, expected_data):
+    """Test broker health check with success and failure scenarios.
 
     Args:
         api_client: The API client to use for testing.
@@ -104,14 +109,12 @@ def test_rabbitmq_health_check(api_client, connection_success, expected_status, 
     """
     with patch("olympus.healthcheck.views.Connection") as mock_connection:
         if connection_success:
-            # Success case
             mock_conn_instance = MagicMock()
             mock_connection.return_value.__enter__.return_value = mock_conn_instance
         else:
-            # Failure case
-            mock_connection.return_value.__enter__.side_effect = Exception("RabbitMQ connection error")
+            mock_connection.return_value.__enter__.side_effect = logger.error("Broker connection error")
 
-        url = reverse("rabbitmq-health-check")
+        url = reverse("broker_health_check")
         response = api_client.get(url)
 
         assert response.status_code == expected_status

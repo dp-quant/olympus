@@ -89,5 +89,5 @@ class RabbitMQHealthCheckView(APIView):
                 connection.connect()
                 return Response({"is_broker_online": True}, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"RabbitMQ health check failed: {str(e)}")
+            logger.error(f"Broker health check failed: {str(e)}")
             return Response({"is_broker_online": False}, status=status.HTTP_503_SERVICE_UNAVAILABLE)

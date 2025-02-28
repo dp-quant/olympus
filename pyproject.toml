@@ -102,7 +102,7 @@ plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
-python_files = ["test_*.py", "*_test.py", "testing/python/*.py"]
+python_files = ["test*.py", "*_test.py", "testing/python/*.py"]
 omit = ["*/tests/*"]
 
 [tool.django-stubs]
