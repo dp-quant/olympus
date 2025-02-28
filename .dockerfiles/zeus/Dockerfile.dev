@@ -17,8 +17,8 @@ RUN useradd -u ${DOCKER_USER_ID} -g ${DOCKER_GROUP} ${DOCKER_USER}
 
 # Set Project Environment Variables
 ENV APPHOME /srv
-ENV RUNDIR /var/run/application
-ENV CONFDIR .configs
+ENV CONFDIR .etc
+ENV RUNDIR ${APPHOME}/run/application
 ENV WORKDIR ${APPHOME}/${MAINTAINER}/${PROJECT_NAME}
 
 ENV MAINTAINER ${MAINTAINER}
@@ -27,7 +27,7 @@ ENV PROJECT_NAME ${PROJECT_NAME}
 # Prepare Environment
 RUN mkdir -p ${WORKDIR}
 WORKDIR  ${WORKDIR}
-COPY ./src/ ${WORKDIR}
+COPY . ${WORKDIR}
 COPY ./${CONFDIR} ${WORKDIR}/${CONFDIR}
 COPY ./pyproject.toml ${WORKDIR}/pyproject.toml
 
@@ -71,4 +71,4 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONPATH "${PYTHONPATH}:${WORKDIR}}"
 ENV C_FORCE_ROOT True
 
-CMD ["poetry", "run", "supervisord", "-c", ".configs/supervisor.conf"]
+CMD poetry run supervisord -c ${CONFDIR}/supervisor.conf

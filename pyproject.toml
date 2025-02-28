@@ -22,7 +22,6 @@ celery = "^5.4.0"
 djangorestframework = "^3.15.2"
 arrow = "^1.3.0"
 loguru = "^0.7.3"
-sentry-sdk = "^2.22.0"
 django-split-settings = "^1.3.2"
 requests = "^2.32.3"
 cryptography = "^44.0.1"
@@ -38,6 +37,9 @@ django-environ = "^0.12.0"
 logtail-python = "^0.3.3"
 python-ulid = "^3.0.0"
 taskipy = "^1.14.1"
+drf-spectacular = "^0.28.0"
+django-cors-headers = "^4.7.0"
+sentry-sdk = "^2.22.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -99,19 +101,19 @@ disallow_untyped_defs = false
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "configs.settings"
+DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py", "*_test.py", "testing/python/*.py"]
 omit = ["*/tests/*"]
 
 [tool.django-stubs]
 django_version = "4.2"
-django_settings_module = "configs.settings"
+django_settings_module = "config.settings"
 
 [tool.mypy_django_plugin]
-django_settings_module = "configs.settings"
+django_settings_module = "config.settings"
 
 [tool.mypy_drf_plugin]
-django_settings_module = "configs.settings"
+django_settings_module = "config.settings"
 
 [tool.flake8]
 select = ["B", "B9", "C", "D", "DAR", "E", "F", "N", "RST", "S", "W"]
@@ -131,7 +133,7 @@ py312-plus = true
 use_vars = true
 
 [tool.taskipy.variables]
-source = "src/"
+source = "."
 
 [tool.taskipy.tasks]
 lint = "poetry run isort {source} && poetry run black {source}"
@@ -140,7 +142,7 @@ test = "poetry run pytest"
 manage = "poetry run python manage.py"
 make-migrations = "poetry run python manage.py makemigrations"
 migrate = "poetry run python manage.py migrate"
-zeus = "poetry run gunicorn configs.wsgi:application -c .configs/gunicorn.py"
-hermes = "poetry run celery --app configs.celery:app worker --concurrency 6 --loglevel INFO -n hermes@%h -Q default,organizations,emails,messages --pidfile /var/run/application/celeryd.pid"
-chronos = "poetry run celery --app configs.celery:app beat --loglevel INFO --pidfile /var/run/application/celeryd.pid"
-eirene = "poetry run celery --app configs.celery:app flower --pidfile /var/run/application/celeryd.pid"
+zeus = "poetry run gunicorn config.wsgi:application -c .etc/gunicorn.py"
+hermes = "poetry run celery --app config.celery:app worker --concurrency 6 --loglevel INFO -n hermes@%h -Q default,organizations,emails,messages --pidfile /srv/run/application/celeryd.pid"
+chronos = "poetry run celery --app config.celery:app beat --loglevel INFO --pidfile /srv/run/application/celeryd.pid --schedule /srv/run/application/celerybeat-schedule"
+eirene = "poetry run celery --app config.celery:app flower --pidfile /srv/run/application/celeryd.pid"

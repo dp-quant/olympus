@@ -23,7 +23,7 @@ services:
     ports:
       - "9500:8888"
     volumes:
-      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+      - .:/srv/${MAINTAINER}/${PROJECT_NAME}/
     env_file: .env
     environment:
       - SERVICE_NAME=zeus
@@ -45,7 +45,7 @@ services:
     environment:
       - SERVICE_NAME=hermes
     volumes:
-      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+      - .:/srv/${MAINTAINER}/${PROJECT_NAME}/
     depends_on:
       - prometeus
       - chronos
@@ -62,8 +62,7 @@ services:
     environment:
       - SERVICE_NAME=chronos
     volumes:
-      - ./alembic/:/srv/${MAINTAINER}/${PROJECT_NAME}/alembic
-      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+      - .:/srv/${MAINTAINER}/${PROJECT_NAME}/
     depends_on:
       - prometeus
   eirene:
@@ -79,7 +78,7 @@ services:
     environment:
       - SERVICE_NAME=eirene
     volumes:
-      - ./src/${PROJECT_NAME}/:/srv/${MAINTAINER}/${PROJECT_NAME}/${PROJECT_NAME}
+      - .:/srv/${MAINTAINER}/${PROJECT_NAME}/
     ports:
       - "5555:5555"
     depends_on:

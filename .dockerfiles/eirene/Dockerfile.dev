@@ -17,7 +17,7 @@ RUN useradd -u ${DOCKER_USER_ID} -g ${DOCKER_GROUP} ${DOCKER_USER}
 
 # Set Project Environment Variables
 ENV APPHOME /srv
-ENV RUNDIR /var/run/application
+ENV RUNDIR ${APPHOME}/run/application
 ENV WORKDIR ${APPHOME}/${MAINTAINER}/${PROJECT_NAME}
 ENV MAINTAINER ${MAINTAINER}
 ENV PROJECT_NAME ${PROJECT_NAME}
@@ -25,7 +25,7 @@ ENV PROJECT_NAME ${PROJECT_NAME}
 # Prepare Environment
 RUN mkdir -p ${WORKDIR}
 WORKDIR  ${WORKDIR}
-COPY ./src/ ${WORKDIR}
+COPY . ${WORKDIR}
 COPY ./pyproject.toml ${WORKDIR}/pyproject.toml
 
 # Install Dependencies

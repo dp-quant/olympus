@@ -8,7 +8,7 @@ from environ import Env
 
 env = Env()
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "configs.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 app = Celery(env.str("PROJECT_NAME", "celery"))
 app.config_from_object("django.conf:settings", namespace="CELERY")

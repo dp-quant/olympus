@@ -4,7 +4,6 @@ import logging
 import sys
 import typing
 from multiprocessing import cpu_count
-from pathlib import Path
 
 import environ
 import json_log_formatter
@@ -12,14 +11,11 @@ import json_log_formatter
 
 env: environ.Env = environ.Env()
 
-# Add the src directory to the path
-src_path = Path(__file__).resolve().parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
-bind: str = "unix:/var/run/application/gunicorn.sock"
+bind: str = "unix:/srv/run/application/gunicorn.sock"
 backlog: int = 2048
 
 workers: int = env.int("GUNICORN_WORKERS", cpu_count() * 2 - 1)
+worker_class: str = "sync"
 timeout: int = env.int("GUNICORN_TIMEOUT", 300)
 max_requests: int = env.int("GUNICORN_MAX_REQUESTS", 1500)
 graceful_timeout: int = env.int("GUNICORN_GRACEFUL_TIMEOUT", 30)
@@ -27,7 +23,7 @@ graceful_timeout: int = env.int("GUNICORN_GRACEFUL_TIMEOUT", 30)
 
 daemon: bool = False
 
-pidfile: str = "/var/run/application/gunicorn.pid"
+pidfile: str = "/srv/run/application/gunicorn.pid"
 
 umask: int = 0
 user: str = env.str("DOCKER_USER")
@@ -44,16 +40,24 @@ errorlog: str = "-"
 
 class JsonRequestFormatter(json_log_formatter.JSONFormatter):
     """Custom JSON log formatter for Gunicorn."""
+
     def json_record(
         self,
         message: str,
         extra: dict[str, str | int | float],
         record: logging.LogRecord,
     ) -> dict[str, str | int | float]:
-        """Return a JSON log record."""
-        payload: dict[str, str | int | float] = super().json_record(
-            message, extra, record
-        )
+        """Return a JSON log record.
+
+        Args:
+            message (str): The message to log.
+            extra (dict[str, str | int | float]): The extra data to log.
+            record (logging.LogRecord): The log record.
+
+        Returns:
+            dict[str, str | int | float]: The JSON log record.
+        """
+        payload: dict[str, str | int | float] = super().json_record(message, extra, record)
         payload["service"] = env.str("SERVICE_NAME", "---")
         payload["source"] = "gunicorn"
         payload["level"] = record.levelname
