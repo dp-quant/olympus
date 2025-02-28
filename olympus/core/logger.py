@@ -3,15 +3,16 @@
 import logging
 import sys
 
+import loguru
 import orjson
 from django.conf import settings
-from loguru import logger
 
 
+logger = loguru.logger
 logger.remove()
 
 
-def serialize(record):
+def serialize(record: "loguru.Record") -> str:
     """Serialize Rules for the record.
 
     Args:
@@ -42,7 +43,7 @@ def serialize(record):
     return orjson.dumps(log_record).decode("utf-8")
 
 
-def sink(message):
+def sink(message: "loguru.Message") -> None:
     """Custom JSON formatter for Loguru.
 
     Args:
@@ -76,12 +77,25 @@ if settings.LOGTAIL_ENABLED and settings.LOGTAIL_TOKEN:
         logger.warning("Logtail package not installed. Skipping Logtail integration.")
 
 
+def get_logger(name: str) -> "loguru.Logger":
+    """Get a logger.
+
+    Args:
+        name: The name of the logger.
+
+    Returns:
+        The logger.
+    """
+    return logger.bind(name=name)
+
+
 class InterceptHandler(logging.Handler):
     """InterceptHandler for Django logging."""
 
     def __init__(self):
         """Initialize the InterceptHandler."""
         super().__init__()
+        self.logger = get_logger(__name__)
         self.formatter = None
         self.level = settings.LOG_LEVEL.upper()
 
@@ -92,7 +106,7 @@ class InterceptHandler(logging.Handler):
             record: Record.
         """
         try:
-            level = logger.level(record.levelname).name
+            level = self.logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
 
@@ -101,7 +115,7 @@ class InterceptHandler(logging.Handler):
             # frame = frame.f_back  # noqa
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        self.logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)

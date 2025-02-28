@@ -33,7 +33,7 @@ ENV = env.str("ENV", default=OlympusEnv.LOCAL.value)
 
 SITE_ID = 1
 
-ADMIN_URL = "backoffice/"
+ADMIN_URL = "__backoffice/"
 REDIRECT_URL = "/"
 
 
@@ -59,6 +59,7 @@ THIRD_PARTY_APPS = [
 
 OLYMPUS_APPS: list[str] = [
     "olympus.core.apps.CoreConfig",
+    "olympus.healthcheck.apps.HealthCheckConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + OLYMPUS_APPS

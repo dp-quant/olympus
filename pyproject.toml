@@ -125,6 +125,7 @@ rst-roles = ["class", "const", "func", "meth", "mod", "ref"]
 rst-directives = ["deprecated"]
 exclude = ".git,__pycache__,docs/conf.py,old,build,dist,*/tests/*,*/migrations/*"
 darglint-ignore = ["*/tests/*"]
+per-file-ignores = ["tests.py:S101","test_*.py:S101", "*_test.py:S101"]
 
 [tool.pyupgrade]
 py312-plus = true
